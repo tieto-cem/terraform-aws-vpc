@@ -1,0 +1,5 @@
+.terraform
+*.iml
+terraform.tfstate
+terraform.tfstate.backup
+awspec
