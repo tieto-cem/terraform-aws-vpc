@@ -42,5 +42,5 @@ This module names AWS resources as follows:
 Example
 -------
 
-* [Simple example](https://github.com/tieto-cem/terraform-aws-vpc/tree/master/examples/simple)
-* [Detailed example](https://github.com/tieto-cem/terraform-aws-vpc/tree/master/examples/detailed)
+* [Simple example](https://github.com/tieto-cem/terraform-aws-vpc/tree/master/example/simple)
+* [Detailed example](https://github.com/tieto-cem/terraform-aws-vpc/tree/master/example/detailed)
