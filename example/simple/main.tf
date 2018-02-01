@@ -5,7 +5,7 @@ provider "aws" {
 data "aws_availability_zones" "azs" {}
 
 module "vpc" {
-  source      = "../../"
+  source      = "github.com/tieto-cem/terraform-aws-vpc?ref=v0.1.0"
   name_prefix = "simple-example"
   cidr        = "10.0.0.0/16"
   azs         = "${data.aws_availability_zones.azs.names}"
