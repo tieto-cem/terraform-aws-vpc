@@ -1,8 +1,7 @@
-
 locals {
-  az_count          = "${length(var.azs)}"
-  subnet_count      = "${local.az_count * 2}"
-  subnet_maskbits   = "${ceil(log(local.subnet_count, 2))}"
+  az_count        = "${length(var.azs)}"
+  subnet_count    = "${local.az_count * 2}"
+  subnet_maskbits = "${ceil(log(local.subnet_count, 2))}"
 }
 
 
@@ -17,7 +16,7 @@ resource "aws_vpc" "vpc" {
   instance_tenancy     = "${var.instance_tenancy}"
 
   tags {
-    Name = "${var.name}-vpc"
+    Name = "${var.name_prefix}-vpc"
   }
 }
 
@@ -30,7 +29,7 @@ resource "aws_internet_gateway" "igw" {
   vpc_id = "${aws_vpc.vpc.id}"
 
   tags {
-    Name = "${var.name}-igw"
+    Name = "${var.name_prefix}-igw"
   }
 }
 
@@ -48,7 +47,7 @@ resource "aws_subnet" "public_subnet" {
   map_public_ip_on_launch = true
 
   tags {
-    Name = "${var.name}-public-subnet-${var.azs[count.index]}"
+    Name = "${var.name_prefix}-public-subnet-${var.azs[count.index]}"
   }
 }
 
@@ -66,7 +65,7 @@ resource "aws_subnet" "private_subnet" {
   map_public_ip_on_launch = false
 
   tags {
-    Name = "${var.name}-private-subnet-${var.azs[count.index]}"
+    Name = "${var.name_prefix}-private-subnet-${var.azs[count.index]}"
   }
 }
 
@@ -84,7 +83,7 @@ resource "aws_route_table" "public_route_table" {
   }
 
   tags {
-    Name = "${var.name}-public-route-table"
+    Name = "${var.name_prefix}-public-route-table"
   }
 }
 
@@ -103,8 +102,9 @@ locals {
 }
 
 resource "aws_eip" "nat_eip" {
-  count = "${local.nat_gateway_count}"
-  vpc   = true
+  count      = "${local.nat_gateway_count}"
+  vpc        = true
+  depends_on = ["aws_internet_gateway.igw"]
 }
 
 resource "aws_nat_gateway" "nat_gateway" {
@@ -128,15 +128,15 @@ resource "aws_route_table" "private_route_table" {
   vpc_id = "${aws_vpc.vpc.id}"
 
   tags {
-    Name = "${format("%s-private-route-table%s", var.name, local.private_route_table_count == 1 ? "" : "-${var.azs[count.index]}")}"
+    Name = "${format("%s-private-route-table%s", var.name_prefix, local.private_route_table_count == 1 ? "" : "-${var.azs[count.index]}")}"
   }
 }
 
 resource "aws_route" "nat_gateway_route" {
-  count = "${local.nat_gateway_count}"
-  route_table_id = "${element(aws_route_table.private_route_table.*.id, count.index)}"
+  count                  = "${local.nat_gateway_count}"
+  route_table_id         = "${element(aws_route_table.private_route_table.*.id, count.index)}"
   destination_cidr_block = "0.0.0.0/0"
-  nat_gateway_id = "${element(aws_nat_gateway.nat_gateway.*.id, count.index)}"
+  nat_gateway_id         = "${element(aws_nat_gateway.nat_gateway.*.id, count.index)}"
 }
 
 resource "aws_route_table_association" "private_route_table_associations" {
@@ -161,13 +161,13 @@ resource "aws_vpc_endpoint" "s3_vpc_endpoint" {
 }
 
 resource "aws_vpc_endpoint_route_table_association" "public_subnet_s3_route" {
-  count        = "${var.enable_s3_endpoint ? 1 : 0}"
+  count           = "${var.enable_s3_endpoint ? 1 : 0}"
   vpc_endpoint_id = "${aws_vpc_endpoint.s3_vpc_endpoint.id}"
   route_table_id  = "${aws_route_table.public_route_table.id}"
 }
 
 resource "aws_vpc_endpoint_route_table_association" "private_subnet_s3_route" {
-  count = "${var.enable_s3_endpoint ? aws_route_table.private_route_table.count : 0}"
+  count           = "${var.enable_s3_endpoint ? aws_route_table.private_route_table.count : 0}"
   vpc_endpoint_id = "${aws_vpc_endpoint.s3_vpc_endpoint.id}"
   route_table_id  = "${element(aws_route_table.private_route_table.*.id, count.index)}"
 }
@@ -187,13 +187,13 @@ resource "aws_vpc_endpoint" "dynamodb_vpc_endpoint" {
 }
 
 resource "aws_vpc_endpoint_route_table_association" "public_subnet_dynamodb_route" {
-  count        = "${var.enable_dynamodb_endpoint ? 1 : 0}"
+  count           = "${var.enable_dynamodb_endpoint ? 1 : 0}"
   vpc_endpoint_id = "${aws_vpc_endpoint.dynamodb_vpc_endpoint.id}"
   route_table_id  = "${aws_route_table.public_route_table.id}"
 }
 
 resource "aws_vpc_endpoint_route_table_association" "private_subnet_dynamodb_route" {
-  count = "${var.enable_dynamodb_endpoint ? aws_route_table.private_route_table.count : 0}"
+  count           = "${var.enable_dynamodb_endpoint ? aws_route_table.private_route_table.count : 0}"
   vpc_endpoint_id = "${aws_vpc_endpoint.dynamodb_vpc_endpoint.id}"
   route_table_id  = "${element(aws_route_table.private_route_table.*.id, count.index)}"
 }

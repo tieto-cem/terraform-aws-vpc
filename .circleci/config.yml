@@ -1,0 +1,28 @@
+version: 2
+jobs:
+  build:
+    docker:
+      - image: hashicorp/terraform:0.11.3
+    steps:
+      - checkout
+      - run:
+          name: Install tflint
+          command: |
+            wget -O /tmp/tflint.zip https://github.com/wata727/tflint/releases/download/v0.5.4/tflint_linux_amd64.zip
+            unzip /tmp/tflint.zip -d /usr/local/bin
+      - run:
+          name: Test simple example
+          command: |
+            cd example/simple
+            terraform init
+            terraform validate
+            tflint
+            terraform plan
+      - run:
+          name: Test detailed example
+          command: |
+            cd example/detailed
+            terraform init
+            terraform validate
+            tflint
+            terraform plan
