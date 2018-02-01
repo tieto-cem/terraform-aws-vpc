@@ -1,3 +1,5 @@
+[![CircleCI](https://circleci.com/gh/tieto-cem/terraform-aws-vpc.svg?style=shield&circle-token=b87b5b396b1fb627b8c4b2a16cff65d8f153ebfd)](https://circleci.com/gh/tieto-cem/terraform-aws-vpc)
+
 AWS VPC Terraform module
 ===========================================
 
