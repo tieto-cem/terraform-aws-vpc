@@ -29,14 +29,14 @@ Resource naming
 
 This module names AWS resources as follows:
 
-| Name                                             | Type                 | Description                                                   |
-|--------------------------------------------------|----------------------|---------------------------------------------------------------|
-|${var.name_prefix}-vpc                            | VPC                  |                                                               |
-|${var.name_prefix}-igw                            | IGW                  |                                                               |
-|${var.name_prefix}-public-subnet-${az_name}       | Subnet (public)      |                                                               |     
-|${var.name_prefix}-private-subnet-${az_name}      | Subnet (private)     |                                                               |
-|${var.name_prefix}-public-route-table             | Route table (public) |                                                               |
-|${var.name_prefix}-private-route-table-${az_name} | Route table (private)| multiple tables are created if NAT GW is created per AZ       | 
+| Name                                             | Type                 | 
+|--------------------------------------------------|----------------------|
+|${var.name_prefix}-vpc                            | VPC                  |
+|${var.name_prefix}-igw                            | IGW                  |
+|${var.name_prefix}-public-subnet-${az_name}       | Subnet (public)      |     
+|${var.name_prefix}-private-subnet-${az_name}      | Subnet (private)     |
+|${var.name_prefix}-public-route-table             | Route table (public) |
+|${var.name_prefix}-private-route-table-${az_name} | Route table (private)| 
 
 
 Example
