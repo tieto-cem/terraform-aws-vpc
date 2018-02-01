@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 module "vpc" {
-  source                   = "github.com/tieto-cem/terraform-aws-vpc?ref=v0.1.1"
+  source                   = "../.."
   name_prefix              = "detailed-example"
   azs                      = ["eu-west-1a", "eu-west-1b", "eu-west-1c"]
   cidr                     = "10.0.0.0/16"
