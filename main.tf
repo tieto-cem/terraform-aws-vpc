@@ -158,6 +158,25 @@ resource "aws_vpc_endpoint" "s3_vpc_endpoint" {
   count        = "${var.enable_s3_endpoint ? 1 : 0}"
   vpc_id       = "${aws_vpc.vpc.id}"
   service_name = "${data.aws_vpc_endpoint_service.s3.service_name}"
+  policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Sid": "Amazon Linux AMI Repository Access",
+      "Principal": "*",
+      "Action": [
+        "s3:GetObject"
+      ],
+      "Effect": "Allow",
+      "Resource": [
+        "arn:aws:s3:::packages.*.amazonaws.com/*",
+        "arn:aws:s3:::repo.*.amazonaws.com/*"
+      ]
+    }
+  ]
+}
+EOF
 }
 
 resource "aws_vpc_endpoint_route_table_association" "public_subnet_s3_route" {
