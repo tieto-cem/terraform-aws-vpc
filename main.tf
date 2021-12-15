@@ -15,7 +15,7 @@ resource "aws_vpc" "vpc" {
   enable_dns_support   = "${var.enable_dns_support}"
   instance_tenancy     = "${var.instance_tenancy}"
 
-  tags {
+  tags = {
     Name = "${var.name_prefix}-vpc"
   }
 }
@@ -28,7 +28,7 @@ resource "aws_vpc" "vpc" {
 resource "aws_internet_gateway" "igw" {
   vpc_id = "${aws_vpc.vpc.id}"
 
-  tags {
+  tags = {
     Name = "${var.name_prefix}-igw"
   }
 }
@@ -39,14 +39,14 @@ resource "aws_internet_gateway" "igw" {
 #-----------------
 
 resource "aws_subnet" "public_subnet" {
-  count                   = "${local.az_count}"
-  vpc_id                  = "${aws_vpc.vpc.id}"
-  availability_zone       = "${var.azs[count.index]}"
+  count                   = local.az_count
+  vpc_id                  = aws_vpc.vpc.id
+  availability_zone       = var.azs[count.index]
   # workaround described in https://github.com/hashicorp/terraform/issues/11210 is used in cidr_block attribute interpolation
-  cidr_block              = "${length(var.public_subnet_cidrs) > 0 ? element(concat(var.public_subnet_cidrs, list("")), count.index) : cidrsubnet(var.cidr, local.subnet_maskbits, count.index)}"
+  cidr_block              = length(var.public_subnet_cidrs) > 0 ? element(concat(var.public_subnet_cidrs, [""]), count.index) : cidrsubnet(var.cidr, local.subnet_maskbits, count.index)
   map_public_ip_on_launch = true
 
-  tags {
+  tags = {
     Name = "${var.name_prefix}-public-subnet-${var.azs[count.index]}"
   }
 }
@@ -61,10 +61,14 @@ resource "aws_subnet" "private_subnet" {
   vpc_id                  = "${aws_vpc.vpc.id}"
   availability_zone       = "${var.azs[count.index]}"
   # workaround described in https://github.com/hashicorp/terraform/issues/11210 is used in cidr_block attribute interpolation
-  cidr_block              = "${length(var.private_subnet_cidrs) > 0 ? element(concat(var.private_subnet_cidrs, list("")), count.index) : cidrsubnet(var.cidr, local.subnet_maskbits, count.index + local.az_count)}"
+  cidr_block              = length(var.private_subnet_cidrs) > 0 ? element(concat(var.private_subnet_cidrs, [""]), count.index) : cidrsubnet(
+    var.cidr,
+    local.subnet_maskbits,
+    count.index + local.az_count,
+  )
   map_public_ip_on_launch = false
 
-  tags {
+  tags = {
     Name = "${var.name_prefix}-private-subnet-${var.azs[count.index]}"
   }
 }
@@ -82,14 +86,14 @@ resource "aws_route_table" "public_route_table" {
     gateway_id = "${aws_internet_gateway.igw.id}"
   }
 
-  tags {
+  tags = {
     Name = "${var.name_prefix}-public-route-table"
   }
 }
 
 resource "aws_route_table_association" "public_route_table_associations" {
-  count          = "${aws_subnet.public_subnet.count}"
-  route_table_id = "${aws_route_table.public_route_table.id}"
+  count          = length(aws_subnet.public_subnet)
+  route_table_id = aws_route_table.public_route_table.id
   subnet_id      = "${aws_subnet.public_subnet.*.id[count.index]}"
 }
 
@@ -104,14 +108,14 @@ locals {
 resource "aws_eip" "nat_eip" {
   count      = "${local.nat_gateway_count}"
   vpc        = true
-  depends_on = ["aws_internet_gateway.igw"]
+  depends_on = [aws_internet_gateway.igw]
 }
 
 resource "aws_nat_gateway" "nat_gateway" {
   count         = "${local.nat_gateway_count}"
   allocation_id = "${aws_eip.nat_eip.*.id[count.index]}"
   subnet_id     = "${aws_subnet.public_subnet.*.id[count.index]}"
-  depends_on    = ["aws_internet_gateway.igw"]
+  depends_on    = [aws_internet_gateway.igw]
 }
 
 
@@ -127,7 +131,7 @@ resource "aws_route_table" "private_route_table" {
   count  = "${local.private_route_table_count}"
   vpc_id = "${aws_vpc.vpc.id}"
 
-  tags {
+  tags = {
     Name = "${format("%s-private-route-table%s", var.name_prefix, local.private_route_table_count == 1 ? "" : "-${var.azs[count.index]}")}"
   }
 }
@@ -140,7 +144,7 @@ resource "aws_route" "nat_gateway_route" {
 }
 
 resource "aws_route_table_association" "private_route_table_associations" {
-  count          = "${aws_subnet.private_subnet.count}"
+  count          = length(aws_subnet.private_subnet)
   route_table_id = "${element(aws_route_table.private_route_table.*.id, count.index)}"
   subnet_id      = "${aws_subnet.private_subnet.*.id[count.index]}"
 }
@@ -152,6 +156,7 @@ resource "aws_route_table_association" "private_route_table_associations" {
 
 data "aws_vpc_endpoint_service" "s3" {
   service = "s3"
+  service_type = "Gateway"
 }
 
 resource "aws_vpc_endpoint" "s3_vpc_endpoint" {
@@ -181,13 +186,13 @@ EOF
 
 resource "aws_vpc_endpoint_route_table_association" "public_subnet_s3_route" {
   count           = "${var.enable_s3_endpoint ? 1 : 0}"
-  vpc_endpoint_id = "${aws_vpc_endpoint.s3_vpc_endpoint.id}"
+  vpc_endpoint_id = aws_vpc_endpoint.s3_vpc_endpoint[0].id
   route_table_id  = "${aws_route_table.public_route_table.id}"
 }
 
 resource "aws_vpc_endpoint_route_table_association" "private_subnet_s3_route" {
-  count           = "${var.enable_s3_endpoint ? aws_route_table.private_route_table.count : 0}"
-  vpc_endpoint_id = "${aws_vpc_endpoint.s3_vpc_endpoint.id}"
+  count           = "${var.enable_s3_endpoint ? length(aws_route_table.private_route_table) : 0}"
+  vpc_endpoint_id = aws_vpc_endpoint.s3_vpc_endpoint[count.index].id
   route_table_id  = "${element(aws_route_table.private_route_table.*.id, count.index)}"
 }
 
@@ -207,12 +212,12 @@ resource "aws_vpc_endpoint" "dynamodb_vpc_endpoint" {
 
 resource "aws_vpc_endpoint_route_table_association" "public_subnet_dynamodb_route" {
   count           = "${var.enable_dynamodb_endpoint ? 1 : 0}"
-  vpc_endpoint_id = "${aws_vpc_endpoint.dynamodb_vpc_endpoint.id}"
-  route_table_id  = "${aws_route_table.public_route_table.id}"
+  vpc_endpoint_id = aws_vpc_endpoint.dynamodb_vpc_endpoint[0].id
+  route_table_id  = aws_route_table.public_route_table.id
 }
 
 resource "aws_vpc_endpoint_route_table_association" "private_subnet_dynamodb_route" {
-  count           = "${var.enable_dynamodb_endpoint ? aws_route_table.private_route_table.count : 0}"
-  vpc_endpoint_id = "${aws_vpc_endpoint.dynamodb_vpc_endpoint.id}"
+  count           = "${var.enable_dynamodb_endpoint ? length(aws_route_table.private_route_table) : 0}"
+  vpc_endpoint_id = aws_vpc_endpoint.dynamodb_vpc_endpoint[count.index].id
   route_table_id  = "${element(aws_route_table.private_route_table.*.id, count.index)}"
 }

@@ -5,7 +5,7 @@ variable "name_prefix" {
 
 variable "azs" {
   description = "A list of availability zones"
-  type = "list"
+  type = list(string)
 }
 
 variable "cidr" {
@@ -14,13 +14,13 @@ variable "cidr" {
 
 variable "public_subnet_cidrs" {
   description = "A list of CIDR blocks for public subnets. By default, VPC CIDR block is divided and allocated to subnets automatically"
-  type = "list"
+  type = list(string)
   default = []
 }
 
 variable "private_subnet_cidrs" {
   description = "A list of CIDR blocks for private subnets. By default, VPC CIDR block is divided and allocated to subnets automatically"
-  type = "list"
+  type = list(string)
   default = []
 }
 
